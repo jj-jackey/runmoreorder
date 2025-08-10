@@ -562,8 +562,11 @@ router.post('/upload', upload.single('orderFile'), async (req, res) => {
           timestamp: new Date().toISOString()
         });
 
-        // 모든 환경에서 /tmp 사용 (uploads 폴더 완전 제거)
-        const tempDir = '/tmp';
+        // 크로스 플랫폼 임시 디렉토리 사용
+        const os = require('os');
+        const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
+          ? '/tmp' 
+          : os.tmpdir();
         
         // 임시 파일로 저장 (.xls 파일도 .xlsx 확장자로 처리)
         const tempFileName = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.xlsx`;
@@ -579,10 +582,15 @@ router.post('/upload', upload.single('orderFile'), async (req, res) => {
         
         console.log('📁 임시 파일 생성:', tempFilePath);
         
-        // 폴더가 없으면 생성 (로컬에서만)
-        if (process.env.NODE_ENV !== 'production' && !fs.existsSync(tempDir)) {
-          fs.mkdirSync(tempDir, { recursive: true });
-          console.log('📁 임시 폴더 생성됨:', tempDir);
+        // 폴더가 없으면 생성 (모든 환경에서)
+        if (!fs.existsSync(tempDir)) {
+          try {
+            fs.mkdirSync(tempDir, { recursive: true });
+            console.log('📁 임시 폴더 생성됨:', tempDir);
+          } catch (mkdirError) {
+            console.warn('⚠️ 임시 폴더 생성 실패:', mkdirError.message);
+            // /tmp가 이미 존재하거나 권한 문제일 수 있음 - 계속 진행
+          }
         }
         
         try {
@@ -1352,10 +1360,17 @@ router.post('/generate', createRateLimitMiddleware('orderGeneration'), async (re
     
     console.log('✅ Supabase 파일 다운로드 완료');
     
-    // 임시 파일로 저장 (모든 환경에서 /tmp 사용)
-    const tempDir = '/tmp';
+    // 임시 파일로 저장 (크로스 플랫폼 임시 디렉토리 사용)
+    const os = require('os');
+    const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
+      ? '/tmp' 
+      : os.tmpdir();
     if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
+      try {
+        fs.mkdirSync(tempDir, { recursive: true });
+      } catch (mkdirError) {
+        console.warn('⚠️ 임시 폴더 생성 실패:', mkdirError.message);
+      }
     }
     
     const tempFileName = `${actualFileId}_${Date.now()}.${actualFileId.split('.').pop()}`;
@@ -1555,7 +1570,10 @@ router.get('/headers/:fileName', async (req, res) => {
     }
     
     // 임시 파일로 저장하여 extractHeadersWithXLSX 함수 사용 (발주서 생성과 동일한 로직)
-    const tempDir = '/tmp';
+    const os = require('os');
+    const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
+      ? '/tmp' 
+      : os.tmpdir();
     const tempFileName = `temp_header_${Date.now()}.xlsx`;
     const tempFilePath = path.join(tempDir, tempFileName);
     
@@ -1803,10 +1821,17 @@ router.post('/generate-direct', createRateLimitMiddleware('orderGeneration'), as
       console.log('📥 Supplier 파일 다운로드 결과:', supplierDownloadResult.success);
       
       if (supplierDownloadResult.success) {
-        // 임시 템플릿 파일 저장 (모든 환경에서 /tmp 사용)
-        const tempDir = '/tmp';
+        // 임시 템플릿 파일 저장 (크로스 플랫폼 임시 디렉토리 사용)
+        const os = require('os');
+        const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
+          ? '/tmp' 
+          : os.tmpdir();
         if (!fs.existsSync(tempDir)) {
-          fs.mkdirSync(tempDir, { recursive: true });
+          try {
+            fs.mkdirSync(tempDir, { recursive: true });
+          } catch (mkdirError) {
+            console.warn('⚠️ 임시 폴더 생성 실패:', mkdirError.message);
+          }
         }
         
         const tempTemplateFileName = `template_${Date.now()}.xlsx`;
@@ -2769,7 +2794,10 @@ router.post('/generate-with-template', createRateLimitMiddleware('orderGeneratio
           // 세 번째 시도: 임시 파일로 저장 후 다시 읽기
           try {
             console.log('🔄 임시 파일 방식으로 재시도...');
-            const tempDir = '/tmp'; // 모든 환경에서 /tmp 사용
+            const os = require('os');
+            const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
+              ? '/tmp' 
+              : os.tmpdir();
             const tempFileName = `temp_safe_${Date.now()}.xlsx`;
             const tempFilePath = path.join(tempDir, tempFileName);
             

@@ -1,10 +1,18 @@
 const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const XLSX = require('xlsx');
 
-// 임시 파일 저장 디렉토리
-const getOutputDir = () => '/tmp';
+// 임시 파일 저장 디렉토리 (크로스 플랫폼)
+const getOutputDir = () => {
+  // Vercel/Render 등 서버리스/클라우드 환경에서는 /tmp 사용
+  if (process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production') {
+    return '/tmp';
+  }
+  // 로컬 개발 환경에서는 OS 기본 임시 디렉토리 사용
+  return os.tmpdir();
+};
 
 // 날짜/시간 필드 식별
 function isDateTimeField(fieldName) {
