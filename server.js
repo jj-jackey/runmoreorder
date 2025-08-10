@@ -276,4 +276,19 @@ app.listen(PORT, async () => {
       console.log('Keep-alive 연결 설정 완료');
     }
   }
+  
+  // Render 헬스 체크 엔드포인트
+  app.get('/health', (req, res) => {
+    res.status(200).json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      platform: platform,
+      uptime: process.uptime()
+    });
+  });
+  
+  // 기본 루트 엔드포인트
+  app.get('/', (req, res) => {
+    res.redirect('/index.html');
+  });
 }); 
