@@ -914,18 +914,25 @@ router.post('/upload', upload.single('orderFile'), async (req, res) => {
              }
            }
            
-           headers = headers;
-           previewData = data;
+           // excelData 객체 형태로 설정 (기존 코드와 호환)
+           excelData = {
+             headers: headers,
+             data: data
+           };
            
            console.log('✅ 일반 Excel 파일 처리 완료:', {
              파일타입: 'Microsoft Excel (.xlsx)',
              플랫폼: isVercel ? 'Vercel' : 'Local',
              헤더개수: headers ? headers.length : 0,
-             데이터행수: previewData ? previewData.length : 0,
+             데이터행수: data ? data.length : 0,
              헤더목록: headers || [], // 전체 헤더 표시
              한컴오피스여부: isHancomExcel
            });
         }
+        
+        // 기존 코드와 호환을 위한 변수 설정
+        headers = excelData.headers;
+        previewData = excelData.data.slice(0, 20); // 상위 20행만
         
         console.log('✅ Excel 파일 처리 완료:', {
           worksheets: '자동 선택됨',
