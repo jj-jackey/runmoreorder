@@ -185,8 +185,25 @@ router.post('/upload', upload.single('orderFile'), async (req, res) => {
     console.log('🔍 req.body.fileType:', req.body.fileType);
     console.log('🔍 req.body.fileType 타입:', typeof req.body.fileType);
     
-    // 한컴오피스 파일 특수 처리
-    const isHancomExcel = file.mimetype === 'application/haansoftxlsx';
+    // 한컴오피스 파일 감지 (강화된 다중 조건)
+    const isHancomExcel = file.mimetype === 'application/haansoftxlsx' ||
+                          (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && 
+                           (originalFileName.includes('한컴') || 
+                            originalFileName.includes('Hancom') ||
+                            originalFileName.includes('한셀') ||
+                            originalFileName.includes('통합문서') ||
+                            originalFileName.includes('워크시트')));
+    
+    // 한컴오피스 파일 감지 로그 강화
+    if (isHancomExcel) {
+      console.log('🏢 한컴오피스 Excel 파일 감지:', {
+        mimeType: file.mimetype,
+        fileName: originalFileName,
+        감지방식: file.mimetype === 'application/haansoftxlsx' ? 'MIME 타입' : '파일명 패턴',
+        파일크기: actualFileSize || file.size
+      });
+    }
+    
     const actualFileSize = file.size || (file.buffer ? file.buffer.length : 0);
     
     console.log('📋 업로드된 파일 정보:', {
@@ -562,53 +579,22 @@ router.post('/upload', upload.single('orderFile'), async (req, res) => {
           timestamp: new Date().toISOString()
         });
 
-        // 크로스 플랫폼 임시 디렉토리 사용
-        const os = require('os');
-        const fs = require('fs');
-        const isCloudEnvironment = process.env.VERCEL || 
-                                  process.env.RENDER ||
-                                  process.env.NODE_ENV === 'production' ||
-                                  process.env.PORT === '10000' || // Render 기본 포트
-                                  fs.existsSync('/tmp'); // Linux 환경 감지
-        const tempDir = isCloudEnvironment ? '/tmp' : os.tmpdir();
-        
-        // 임시 파일로 저장 (.xls 파일도 .xlsx 확장자로 처리)
-        const tempFileName = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.xlsx`;
-        tempFilePath = path.join(tempDir, tempFileName);
-        
-        // .xls 파일 처리 안내
-        if (isXlsFile) {
-          console.log('🔄 .xls 파일을 xlsx 라이브러리로 직접 처리:', {
-            originalFile: originalFileName,
-            tempFile: tempFileName
-          });
-        }
-        
-        console.log('📁 임시 파일 생성:', tempFilePath);
-        
-        // 폴더가 없으면 생성 (모든 환경에서)
-        if (!fs.existsSync(tempDir)) {
-          try {
-            fs.mkdirSync(tempDir, { recursive: true });
-            console.log('📁 임시 폴더 생성됨:', tempDir);
-          } catch (mkdirError) {
-            console.warn('⚠️ 임시 폴더 생성 실패:', mkdirError.message);
-            // /tmp가 이미 존재하거나 권한 문제일 수 있음 - 계속 진행
+        // 메모리에서 직접 Excel 파일 처리 (안전한 방식)
+        console.log('🔄 메모리에서 직접 Excel 파일 처리:', {
+          fileSize: fileBuffer.length,
+          originalFile: originalFileName,
+          처리방식: '메모리 기반 (서버리스 환경 최적화)',
+          환경정보: {
+            NODE_ENV: process.env.NODE_ENV,
+            isProduction: process.env.NODE_ENV === 'production',
+            platform: process.env.VERCEL ? 'vercel' : (process.env.RENDER ? 'render' : 'local')
           }
-        }
-        
-        try {
-          fs.writeFileSync(tempFilePath, fileBuffer);
-          console.log('✅ 임시 파일 쓰기 완료:', tempFilePath);
-        } catch (writeError) {
-          console.error('❌ 임시 파일 쓰기 실패:', writeError.message);
-          throw writeError;
-        }
+        });
         
         // Excel 파일 처리 결과를 저장할 변수 (스코프 문제 해결)
         let excelData = null;
         
-        // .xls 파일 또는 한컴오피스 파일 특수 처리
+        // .xls 파일 또는 한컴오피스 파일 특수 처리 (메모리에서 직접)
         if (isXlsFile || isHancomExcel) {
           const fileTypeLabel = isXlsFile ? '.xls 파일' : '한컴오피스 Excel 파일';
           console.log(`🔄 ${fileTypeLabel}을 xlsx 라이브러리로 직접 처리...`);
@@ -639,12 +625,21 @@ router.post('/upload', upload.single('orderFile'), async (req, res) => {
                 console.log('⚡ Vercel 환경 - 메모리 최적화 옵션 적용');
               }
               
-              // 한컴오피스 파일 특수 처리
+              // 한컴오피스 파일 특수 처리 (강화된 옵션)
               if (isHancomExcel) {
-                xlsxOptions.codepage = 949;        // 한국어 코드페이지
-                xlsxOptions.raw = false;           // 포맷팅된 값 사용
-                xlsxOptions.dateNF = 'yyyy-mm-dd'; // 날짜 형식 표준화
-                console.log('🏢 한컴오피스 Excel 파일 특수 옵션 적용');
+                xlsxOptions.codepage = 949;           // 한국어 코드페이지 (EUC-KR)
+                xlsxOptions.raw = false;              // 포맷팅된 값 사용
+                xlsxOptions.dateNF = 'yyyy-mm-dd';    // 날짜 형식 표준화
+                xlsxOptions.cellText = true;          // 텍스트 우선 처리
+                xlsxOptions.bookSST = true;           // 공유 문자열 테이블 활성화
+                xlsxOptions.cellFormula = false;      // 수식 비활성화 (안정성)
+                xlsxOptions.cellStyles = false;       // 스타일 정보 생략 (메모리 절약)
+                xlsxOptions.WTF = false;              // 엄격한 파싱 모드
+                console.log('🏢 한컴오피스 Excel 파일 강화된 특수 옵션 적용:', {
+                  코드페이지: xlsxOptions.codepage,
+                  텍스트처리: xlsxOptions.cellText,
+                  공유문자열: xlsxOptions.bookSST
+                });
               }
               
               const workbook = XLSX.read(fileBuffer, xlsxOptions);
@@ -850,23 +845,77 @@ router.post('/upload', upload.single('orderFile'), async (req, res) => {
            previewData = excelData.data; // 이미 20행으로 제한됨
           
         } else {
-                     // 일반 .xlsx 파일인 경우 기존 readExcelFile 사용 (한컴오피스 제외)
-           const { readExcelFile } = require('../utils/converter');
+           // 일반 .xlsx 파일 처리 (메모리 기반, 한컴오피스 제외)
            console.log('🔄 일반 Excel 파일 읽기 시작... (Microsoft Excel 형식)');
            
-           // 플랫폼별 타임아웃 적용
-           // Vercel: 20초, 로컬: 60초
-           const timeout = isVercel ? 20000 : 60000;
+           // XLSX 라이브러리를 사용한 메모리 기반 처리
+           const XLSX = require('xlsx');
            
-           excelData = await Promise.race([
-             readExcelFile(tempFilePath),
-             new Promise((_, reject) => 
-               setTimeout(() => reject(new Error(`Excel 파일 처리 시간 초과 (${timeout/1000}초)`)), timeout)
-             )
-           ]);
+           const xlsxOptions = {
+             type: 'buffer',
+             cellDates: true,
+             cellNF: false,
+             cellText: false,
+             raw: false
+           };
            
-           headers = excelData.headers;
-           previewData = excelData.data.slice(0, 20); // 상위 20행만
+           // 메모리에서 직접 워크북 읽기
+           const workbook = XLSX.read(fileBuffer, xlsxOptions);
+           
+           if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+             throw new Error('워크시트가 없습니다.');
+           }
+           
+           const firstSheetName = workbook.SheetNames[0];
+           const worksheet = workbook.Sheets[firstSheetName];
+           
+           // JSON 데이터로 변환
+           const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+             header: 1, 
+             raw: false, 
+             defval: '',
+             blankrows: false
+           });
+           
+           // 헤더 찾기
+           let headers = [];
+           let headerRowIndex = 0;
+           
+           for (let i = 0; i < Math.min(5, jsonData.length); i++) {
+             const row = jsonData[i];
+             if (row && row.length > 2) {
+               const nonEmptyCount = row.filter(cell => cell && cell.toString().trim() !== '').length;
+               if (nonEmptyCount >= 3) {
+                 headers = row.filter(cell => cell && cell.toString().trim() !== '')
+                             .map(cell => cell.toString().trim());
+                 headerRowIndex = i;
+                 break;
+               }
+             }
+           }
+           
+           if (headers.length === 0) {
+             throw new Error('헤더를 찾을 수 없습니다.');
+           }
+           
+           // 데이터 처리 (상위 20행만)
+           const data = [];
+           const maxRows = Math.min(headerRowIndex + 21, jsonData.length); // 헤더 + 20행
+           
+           for (let i = headerRowIndex + 1; i < maxRows; i++) {
+             const row = jsonData[i];
+             if (row && row.some(cell => cell !== undefined && cell !== null && cell !== '')) {
+               const rowData = {};
+               headers.forEach((header, index) => {
+                 const cellValue = row[index];
+                 rowData[header] = cellValue !== undefined && cellValue !== null ? cellValue.toString().trim() : '';
+               });
+               data.push(rowData);
+             }
+           }
+           
+           headers = headers;
+           previewData = data;
            
            console.log('✅ 일반 Excel 파일 처리 완료:', {
              파일타입: 'Microsoft Excel (.xlsx)',
