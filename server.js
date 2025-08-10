@@ -14,12 +14,18 @@ const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 const isVercel = process.env.VERCEL === '1';
 
-// 플랫폼별 설정
-const platform = isVercel ? 'vercel' : 'local';
+// 플랫폼별 설정 (강화된 감지)
+const isRender = process.env.RENDER || process.env.PORT === '10000' || require('fs').existsSync('/tmp');
+const platform = isVercel ? 'vercel' : (isRender ? 'render' : 'local');
 
-if (!isProduction) {
-  console.log(`플랫폼: ${platform.toUpperCase()}`);
-}
+console.log(`🚀 플랫폼 감지: ${platform.toUpperCase()} 환경`);
+console.log(`📊 환경 정보:`, {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  VERCEL: !!process.env.VERCEL,
+  RENDER: !!process.env.RENDER,
+  tmpExists: require('fs').existsSync('/tmp')
+});
 
 if (isProduction) {
   

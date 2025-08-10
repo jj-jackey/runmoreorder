@@ -6,8 +6,14 @@ const XLSX = require('xlsx');
 
 // 임시 파일 저장 디렉토리 (크로스 플랫폼)
 const getOutputDir = () => {
-  // Vercel/Render 등 서버리스/클라우드 환경에서는 /tmp 사용
-  if (process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production') {
+  // 클라우드/Production 환경 감지
+  const isCloudEnvironment = process.env.VERCEL || 
+                           process.env.RENDER ||
+                           process.env.NODE_ENV === 'production' ||
+                           process.env.PORT === '10000' || // Render 기본 포트
+                           fs.existsSync('/tmp'); // Linux 환경 감지
+  
+  if (isCloudEnvironment) {
     return '/tmp';
   }
   // 로컬 개발 환경에서는 OS 기본 임시 디렉토리 사용

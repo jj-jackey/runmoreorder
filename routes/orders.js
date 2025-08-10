@@ -564,9 +564,13 @@ router.post('/upload', upload.single('orderFile'), async (req, res) => {
 
         // 크로스 플랫폼 임시 디렉토리 사용
         const os = require('os');
-        const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
-          ? '/tmp' 
-          : os.tmpdir();
+        const fs = require('fs');
+        const isCloudEnvironment = process.env.VERCEL || 
+                                  process.env.RENDER ||
+                                  process.env.NODE_ENV === 'production' ||
+                                  process.env.PORT === '10000' || // Render 기본 포트
+                                  fs.existsSync('/tmp'); // Linux 환경 감지
+        const tempDir = isCloudEnvironment ? '/tmp' : os.tmpdir();
         
         // 임시 파일로 저장 (.xls 파일도 .xlsx 확장자로 처리)
         const tempFileName = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.xlsx`;
@@ -1362,9 +1366,12 @@ router.post('/generate', createRateLimitMiddleware('orderGeneration'), async (re
     
     // 임시 파일로 저장 (크로스 플랫폼 임시 디렉토리 사용)
     const os = require('os');
-    const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
-      ? '/tmp' 
-      : os.tmpdir();
+    const isCloudEnvironment = process.env.VERCEL || 
+                              process.env.RENDER ||
+                              process.env.NODE_ENV === 'production' ||
+                              process.env.PORT === '10000' ||
+                              fs.existsSync('/tmp');
+    const tempDir = isCloudEnvironment ? '/tmp' : os.tmpdir();
     if (!fs.existsSync(tempDir)) {
       try {
         fs.mkdirSync(tempDir, { recursive: true });
@@ -1571,9 +1578,12 @@ router.get('/headers/:fileName', async (req, res) => {
     
     // 임시 파일로 저장하여 extractHeadersWithXLSX 함수 사용 (발주서 생성과 동일한 로직)
     const os = require('os');
-    const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
-      ? '/tmp' 
-      : os.tmpdir();
+    const isCloudEnvironment = process.env.VERCEL || 
+                              process.env.RENDER ||
+                              process.env.NODE_ENV === 'production' ||
+                              process.env.PORT === '10000' ||
+                              fs.existsSync('/tmp');
+    const tempDir = isCloudEnvironment ? '/tmp' : os.tmpdir();
     const tempFileName = `temp_header_${Date.now()}.xlsx`;
     const tempFilePath = path.join(tempDir, tempFileName);
     
@@ -1823,9 +1833,12 @@ router.post('/generate-direct', createRateLimitMiddleware('orderGeneration'), as
       if (supplierDownloadResult.success) {
         // 임시 템플릿 파일 저장 (크로스 플랫폼 임시 디렉토리 사용)
         const os = require('os');
-        const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
-          ? '/tmp' 
-          : os.tmpdir();
+        const isCloudEnvironment = process.env.VERCEL || 
+                                  process.env.RENDER ||
+                                  process.env.NODE_ENV === 'production' ||
+                                  process.env.PORT === '10000' ||
+                                  fs.existsSync('/tmp');
+        const tempDir = isCloudEnvironment ? '/tmp' : os.tmpdir();
         if (!fs.existsSync(tempDir)) {
           try {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -2795,9 +2808,12 @@ router.post('/generate-with-template', createRateLimitMiddleware('orderGeneratio
           try {
             console.log('🔄 임시 파일 방식으로 재시도...');
             const os = require('os');
-            const tempDir = process.env.VERCEL || process.env.RENDER || process.env.NODE_ENV === 'production' 
-              ? '/tmp' 
-              : os.tmpdir();
+            const isCloudEnvironment = process.env.VERCEL || 
+                                      process.env.RENDER ||
+                                      process.env.NODE_ENV === 'production' ||
+                                      process.env.PORT === '10000' ||
+                                      fs.existsSync('/tmp');
+            const tempDir = isCloudEnvironment ? '/tmp' : os.tmpdir();
             const tempFileName = `temp_safe_${Date.now()}.xlsx`;
             const tempFilePath = path.join(tempDir, tempFileName);
             
