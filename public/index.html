@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Auto Order Converter</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="header-loading.css">
+    <!-- XLSX 라이브러리 (Excel 파일 생성용) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- ExcelJS 라이브러리 (스타일링 지원) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                <div>
+                    <h1>AUTO ORDER CONVERTER</h1>
+                    <p>주문서를 업로드하면 발주서로 자동 변환하고 이메일로 전송합니다</p>
+                </div>
+                
+                <!-- 사용량 표시 영역 -->
+                <div id="usageContainer" style="background: rgba(255, 255, 255, 0.95); padding: 12px 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); min-width: 280px;">
+                    <div id="usageDisplay" style="margin-bottom: 8px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85em;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="color: #28a745;">📊</span>
+                                <span style="color: #495057; font-weight: 600;">일일 사용량</span>
+                                <span style="color: #6c757d; font-size: 0.8em;">(정상)</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; font-size: 0.8em;">
+                                <span style="color: #6f42c1;">🏭 발주서: 0/10</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; font-size: 0.8em;">
+                                <span style="color: #17a2b8;">🤖 AI매핑: 0/10</span>
+                            </div>
+                            <div style="display: flex; gap: 8px; font-size: 0.8em;">
+                                <span style="color: #28a745;">📧 이메일: 0/5</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 사용량 진행바 -->
+                    <div style="background: #e9ecef; height: 4px; border-radius: 2px; overflow: hidden;">
+                        <div id="usageProgress" style="height: 100%; background: #28a745; width: 0%; transition: all 0.3s ease;"></div>
+                    </div>
+                    
+                    <div style="font-size: 0.7em; color: #6c757d; margin-top: 4px; text-align: center;">
+                        카테고리별 일일 제한
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- 런모아 연동 관리 섹션 (관리자 전용) -->
+        <div class="webhook-management" id="webhookManagement" style="display: none; padding: 20px; background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%); border-bottom: 1px solid #dadce0; margin-bottom: 20px;">
+            <h3 style="color: #212529; margin-bottom: 20px; font-size: 1.2em; display: flex; align-items: center;">
+                🔗 런모아 플랫폼 연동 관리
+                <span style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: white; font-size: 0.7em; padding: 2px 8px; border-radius: 10px; margin-left: 10px;">NEW!</span>
+            </h3>
+            
+            <div class="webhook-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="webhook-info">
+                    <div class="info-card" style="background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%); padding: 20px; border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.1); margin-bottom: 15px;">
+                        <h4 style="color: #495057; margin-bottom: 15px;">📋 연동 정보</h4>
+                        <div class="webhook-details">
+                            <div class="detail-item" style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                                <strong style="min-width: 80px;">API URL:</strong> 
+                                <code id="webhookUrl" style="background: #e9ecef; padding: 5px 10px; border-radius: 4px; flex: 1; font-size: 0.8em;">로딩 중...</code>
+                                <button onclick="copyToClipboard('webhookUrl')" class="copy-btn" style="background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">📋</button>
+                            </div>
+                            <div class="detail-item" style="margin-bottom: 10px;">
+                                <strong>HTTP 방식:</strong> POST
+                            </div>
+                            <div class="detail-item" style="margin-bottom: 10px;">
+                                <strong>인증 방법:</strong> Authorization: Bearer YOUR_API_KEY
+                            </div>
+                            <div class="detail-item">
+                                <strong>응답 형식:</strong> JSON
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-card" style="background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%); padding: 20px; border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.1);">
+                        <h4 style="color: #495057; margin-bottom: 15px;">🔐 API 키 관리</h4>
+                        <div class="api-key-section">
+                            <div class="api-key-status" id="apiKeyStatus" style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #ffc107;">
+                                <span class="status-indicator" id="apiKeyIndicator">⚠️</span>
+                                <span id="apiKeyText" style="margin-left: 10px;">API 키 상태 확인 중...</span>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="checkWebhookStatus()" class="btn" style="flex: 1; background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); font-size: 0.8em;">🔍 상태 확인</button>
+                                <button onclick="testWebhookAPI()" class="btn" style="flex: 1; background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); font-size: 0.8em;">🧪 API 테스트</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="webhook-test">
+                    <div style="background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%); padding: 20px; border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.1);">
+                        <h4 style="color: #495057; margin-bottom: 15px;">🧪 테스트 주문 전송</h4>
+                        <div class="test-form">
+                            <div class="form-group" style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">주문번호:</label>
+                                <input type="text" id="testOrderId" value="TEST-001" class="test-input" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">고객명:</label>
+                                <input type="text" id="testCustomerName" value="테스트고객" class="test-input" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 10px;">
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">상품명:</label>
+                                <input type="text" id="testProductName" value="테스트 상품" class="test-input" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                                <div class="form-group">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">수량:</label>
+                                    <input type="number" id="testQuantity" value="1" class="test-input" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #495057;">단가:</label>
+                                    <input type="number" id="testUnitPrice" value="10000" class="test-input" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                                </div>
+                            </div>
+                            <button onclick="sendTestOrder()" class="btn btn-success" style="width: 100%; background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); font-size: 0.9em;">📤 테스트 주문 전송</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="webhookTestResult" class="webhook-result" style="display: none; margin-top: 20px; background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%); padding: 20px; border-radius: 8px; box-shadow: 0 3px 8px rgba(0,0,0,0.1);">
+                <h4 style="color: #495057; margin-bottom: 15px;">📋 테스트 결과</h4>
+                <pre id="testResultContent" style="background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; border: 1px solid #e9ecef; font-size: 0.9em;"></pre>
+            </div>
+        </div>
+
+        <!-- 메인 콘텐츠 -->
+        <div class="main-content">
+            <!-- 모드 선택 라디오 버튼 -->
+            <div class="step" style="margin-bottom: 15px;">
+                <h3>작업 모드 선택</h3>
+                <p>원하는 작업 방식을 선택하세요.</p>
+                
+                <div class="mode-selection">
+                    <label class="mode-option">
+                        <input type="radio" name="workMode" value="fileUpload" checked>
+                        <div>
+                            <strong style="color: #495057;">파일 업로드</strong>
+                        </div>
+                    </label>
+                    
+                    <label class="mode-option">
+                        <input type="radio" name="workMode" value="savedTemplate">
+                        <div>
+                            <strong style="color: #495057;">저장 템플릿 사용</strong>
+                        </div>
+                    </label>
+                    
+                    <label class="mode-option">
+                        <input type="radio" name="workMode" value="directInput">
+                        <div>
+                            <strong style="color: #495057;">주문서 직접 입력</strong>
+                        </div>
+                    </label>
+                    
+                    <label class="mode-option">
+                        <input type="radio" name="workMode" value="defaultTemplate">
+                        <div>
+                            <strong style="color: #495057;">기본 템플릿 사용</strong>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 1단계: 파일 업로드/입력 -->
+            <div class="step" id="step1">
+                <h3 id="step1Title">STEP 1. 발주서 파일 업로드</h3>
+                <p id="step1Description">발주서 템플릿을 먼저 업로드하고, 다양한 형태의 주문서를 업로드하면 표준 발주서 양식으로 자동 변환됩니다.</p>
+                
+                <!-- 파일 업로드 모드 -->
+                <div id="fileUploadMode" class="mode-container">
+                    <div class="upload-container">
+                        <div class="upload-column">
+                            <div class="upload-area" id="uploadAreaSupplier">
+                                <div class="upload-icon">⬆</div>
+                                <h4>발주서 파일 업로드</h4>
+                                <p>또는 <strong>클릭</strong>하여 파일을 선택하세요</p>
+                                <p style="margin-top: 10px; color: #6c757d;">지원 형식: Excel (.xlsx, .xls - Excel 2016+ 호환), CSV (.csv)</p>
+                                <input type="file" id="fileInputSupplier" class="file-input" accept=".xlsx,.xls,.csv">
+                            </div>
+                            
+                            <div id="uploadResultSupplier" class="hidden">
+                                <div id="uploadAlertSupplier"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="upload-column">
+                            <div class="upload-area" id="uploadAreaOrder">
+                                <div class="upload-icon">⬆</div>
+                                <h4>주문서 파일 업로드</h4>
+                                <p>또는 <strong>클릭</strong>하여 파일을 선택하세요</p>
+                                <p style="margin-top: 10px; color: #6c757d;">지원 형식: Excel (.xlsx, .xls - Excel 2016+ 호환), CSV (.csv)</p>
+                                <input type="file" id="fileInputOrder" class="file-input" accept=".xlsx,.xls,.csv">
+                            </div>
+                            
+                            <div id="uploadResultOrder" class="hidden">
+                                <div id="uploadAlertOrder"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+
+                </div>
+
+                <!-- 주문서 직접 입력 모드 -->
+                <div id="directInputMode" class="mode-container hidden">
+                    <div class="upload-container">
+                        <div class="upload-column">
+                            <div class="upload-area" id="uploadAreaSupplierDirectMode">
+                                <div class="upload-icon">⬆</div>
+                                <h4>발주서 파일 업로드</h4>
+                                <p>또는 <strong>클릭</strong>하여 파일을 선택하세요</p>
+                                <p style="margin-top: 10px; color: #6c757d;">지원 형식: Excel (.xlsx, .xls - Excel 2016+ 호환), CSV (.csv)</p>
+                                <input type="file" id="fileInputSupplierDirectMode" class="file-input" accept=".xlsx,.xls,.csv">
+                            </div>
+                            
+                            <div id="uploadResultSupplierDirectMode" class="hidden">
+                                <div id="uploadAlertSupplierDirectMode"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="upload-column">
+                            <div class="info-box info-box-blue">
+                                <h4 class="info-box-title">📝 주문 정보 직접 입력</h4>
+                                
+                                <div class="form-grid">
+                                    <div class="form-group vertical">
+                                        <label for="direct_input_상품명" class="form-label required">상품명</label>
+                                        <input type="text" id="direct_input_상품명" class="form-control" placeholder="상품명을 입력하세요 (필수)" required>
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="direct_input_수량" style="color: #1976d2; font-weight: 600;">수량</label>
+                                        <input type="number" id="direct_input_수량" class="form-control" placeholder="수량을 입력하세요">
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="direct_input_단가" style="color: #1976d2; font-weight: 600;">단가</label>
+                                        <input type="number" id="direct_input_단가" class="form-control" placeholder="단가를 입력하세요">
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="direct_input_고객명" style="color: #1976d2; font-weight: 600;">고객명</label>
+                                        <input type="text" id="direct_input_고객명" class="form-control" placeholder="고객명을 입력하세요">
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="direct_input_연락처" class="form-label required">연락처</label>
+                                        <input type="text" id="direct_input_연락처" class="form-control" placeholder="연락처를 입력하세요 (필수)" required>
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="direct_input_주소" class="form-label required">주소</label>
+                                        <input type="text" id="direct_input_주소" class="form-control" placeholder="주소를 입력하세요 (필수)" required>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 주문서 직접 입력 모드 전체 버튼 -->
+                    <div style="text-align: center; margin: 20px 0; padding: 15px; background: linear-gradient(145deg, #f1f3f4 0%, #e8eaed 100%); border-radius: 8px; border: 1px solid #dadce0;">
+                        <button class="btn btn-success" onclick="processDirectInputMode()" style="width: 100%; background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white; padding: 12px 24px; font-size: 0.9em; font-weight: 600; border: none; border-radius: 6px;">
+                            ✅ 입력 완료
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 기본 템플릿 사용 모드 -->
+                <div id="defaultTemplateMode" class="mode-container hidden">
+                    <div class="upload-container">
+                        <div class="upload-column">
+                            <div style="background: linear-gradient(145deg, #fff3e0 0%, #ffcc02 100%); padding: 20px; border-radius: 8px; border: 2px solid #ff9800; text-align: center;">
+                                <div style="font-size: 3em; color: #e65100; margin-bottom: 15px;">🎯</div>
+                                <h4 style="color: #e65100; margin-bottom: 10px;">기본 템플릿 자동 적용</h4>
+                                <p style="color: #bf360c; margin-bottom: 15px;">표준 발주서 템플릿이 자동으로 적용됩니다</p>
+                                <div style="background: rgba(255,255,255,0.8); padding: 10px; border-radius: 6px; font-size: 0.9em; color: #e65100;">
+                                    <strong>포함 필드:</strong><br>
+                                    상품명, 수량, 단가, 고객명, 연락처, 주소, 총금액, 주문일자
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="upload-column">
+                            <div class="info-box info-box-green">
+                                <h4 class="info-box-title">🎯 주문 정보 입력 (기본 템플릿)</h4>
+                                
+                                <div class="form-grid">
+                                    <div class="form-group vertical">
+                                        <label for="template_상품명" class="form-label required">상품명</label>
+                                        <input type="text" id="template_상품명" class="form-control" placeholder="상품명을 입력하세요 (필수)" required>
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="template_수량" style="color: #2e7d32; font-weight: 600;">수량</label>
+                                        <input type="number" id="template_수량" class="form-control" placeholder="수량을 입력하세요">
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="template_단가" style="color: #2e7d32; font-weight: 600;">단가</label>
+                                        <input type="number" id="template_단가" class="form-control" placeholder="단가를 입력하세요">
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="template_고객명" style="color: #2e7d32; font-weight: 600;">고객명</label>
+                                        <input type="text" id="template_고객명" class="form-control" placeholder="고객명을 입력하세요">
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="template_연락처" style="color: #d32f2f; font-weight: 600;">연락처 <span style="color: red;">*</span></label>
+                                        <input type="text" id="template_연락처" class="form-control" placeholder="연락처를 입력하세요 (필수)" required>
+                                    </div>
+                                    
+                                    <div class="form-group vertical">
+                                        <label for="template_주소" style="color: #d32f2f; font-weight: 600;">주소 <span style="color: red;">*</span></label>
+                                        <input type="text" id="template_주소" class="form-control" placeholder="주소를 입력하세요 (필수)" required>
+                                    </div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 기본 템플릿 사용 모드 전체 버튼 -->
+                    <div style="text-align: center; margin: 20px 0; padding: 15px; background: linear-gradient(145deg, #f1f3f4 0%, #e8eaed 100%); border-radius: 8px; border: 1px solid #dadce0;">
+                        <button class="btn btn-success" onclick="processDefaultTemplateMode()" style="width: 100%; background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white; padding: 12px 24px; font-size: 0.9em; font-weight: 600; border: none; border-radius: 6px;">
+                            ✅ 입력 완료
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 저장 템플릿 사용 모드 -->
+                <div id="savedTemplateMode" class="mode-container hidden">
+                    <div class="upload-container">
+                        <div class="upload-column">
+                            <div class="info-box info-box-purple">
+                                <h4 class="info-box-title">💾 저장된 템플릿 선택, 검색 가능</h4>
+                                
+                                <div id="templateLoadingMessage" style="text-align: center; color: #7b1fa2; margin: 20px 0;">
+                                    <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #9c27b0; border-radius: 50%; border-top: 2px solid transparent; animation: spin 1s linear infinite; margin-right: 10px;"></div>
+                                    템플릿을 불러오고 있습니다...
+                                </div>
+                                
+                                <div id="noTemplatesMessage" class="empty-state" style="display: none; text-align: center; color: #6a1b9a; margin: 20px 0;">
+                                    <div class="empty-state-icon">📂</div>
+                                    <p>저장된 템플릿이 없습니다.</p>
+                                    <p style="font-size: 0.9em; color: #6c757d; margin-top: 10px;">먼저 파일 업로드 모드에서 매칭을 완료하고 템플릿을 저장해보세요.</p>
+                                </div>
+                                
+                                <div id="templateList" style="display: none;">
+                                    <p style="color: #6a1b9a; margin-bottom: 15px; text-align: center;">저장된 템플릿을 선택하여 즉시 발주서를 생성하세요.</p>
+                                    
+                                    <!-- 템플릿 이름 검색 섹션 -->
+                                    <div style="margin-bottom: 20px;">
+                                        <div style="display: flex; gap: 10px; align-items: center;">
+                                            <input type="text" id="templateSearchInput" placeholder="템플릿이름 입력(예:우체국템플릿)" 
+                                                   style="flex: 1; padding: 12px; border: 2px solid #9c27b0; border-radius: 8px; font-size: 1em; outline: none; transition: all 0.3s ease; background-color: #ffffff;"
+                                                   onkeypress="if(event.key==='Enter') searchAndSelectTemplate()">
+                                            <button onclick="searchAndSelectTemplate()" class="btn" style="background: linear-gradient(135deg, #9c27b0 0%, #6a1b9a 100%); color: white; padding: 12px 24px; font-size: 1em; font-weight: 600; border-radius: 8px; white-space: nowrap; box-shadow: 0 3px 8px rgba(156, 39, 176, 0.3);">
+                                                검색
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- 정렬 옵션 -->
+                                        <div style="margin-top: 15px; display: flex; gap: 10px; align-items: right; justify-content: right;">
+                                            <span style="color: #6a1b9a; font-weight: 500;">정렬:</span>
+                                            <select id="templateSortOption" onchange="sortTemplates()" style="padding: 8px 12px; border: 2px solid #9c27b0; border-radius: 6px; background: white; color: #6a1b9a; font-size: 0.9em; outline: none;">
+                                                <option value="latest">최신순</option>
+                                                <option value="name">가나다순</option>
+                                                <option value="usage">사용빈도순</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div id="searchResult" style="margin-top: 10px; font-size: 0.9em; text-align: center;"></div>
+                                    </div>
+                                    
+                                    <div id="templateCards" style="max-height: 300px; overflow-y: auto;">
+                                        <!-- 템플릿 카드들이 동적으로 생성됩니다 -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="upload-column">
+                            <div class="upload-area" id="uploadAreaTemplateMode">
+                                <div class="upload-icon">⬆</div>
+                                <h4>주문서 파일 업로드</h4>
+                                <p>또는 <strong>클릭</strong>하여 파일을 선택하세요</p>
+                                <p style="margin-top: 10px; color: #6c757d;">지원 형식: Excel (.xlsx, .xls - Excel 2016+ 호환), CSV (.csv)</p>
+                                <input type="file" id="fileInputTemplateMode" class="file-input" accept=".xlsx,.xls,.csv">
+                            </div>
+                            
+                            <div id="uploadResultTemplateMode" class="hidden">
+                                <div id="uploadAlertTemplateMode"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 저장된 템플릿 사용 모드 전체 버튼 -->
+                    <div style="text-align: center; margin: 20px 0; padding: 15px; background: linear-gradient(145deg, #f1f3f4 0%, #e8eaed 100%); border-radius: 8px; border: 1px solid #dadce0;">
+                        <button onclick="startTemplateEdit()" class="btn" style="width: 100%; background: linear-gradient(135deg, #4caf50 0%, #43a047 100%); color: white; padding: 12px 24px; font-size: 0.9em; font-weight: 600; border: none; border-radius: 6px;">
+                            STEP 2. 자동 변환 시작
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 직접 입력 폼 (주문서 없이 입력) -->
+            <div class="step hidden" id="directInputStep">
+                <h3>📝 직접 주문 정보 입력</h3>
+                <p>주문서 파일 없이 주문 정보를 직접 입력하여 발주서를 생성합니다.</p>
+                
+                <div style="background: linear-gradient(145deg, #e3f2fd 0%, #bbdefb 100%); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="color: #1976d2; margin-bottom: 15px;">📋 주문 정보 입력</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        <!-- 입력 필드들 -->
+                        <div class="form-group vertical">
+                            <label for="direct_상품명" style="color: #d32f2f; font-weight: 600;">상품명 <span style="color: red;">*</span></label>
+                            <input type="text" id="direct_상품명" class="form-control" placeholder="상품명을 입력하세요 (필수)" required>
+                        </div>
+                        
+                        <div class="form-group vertical">
+                            <label for="direct_연락처" style="color: #d32f2f; font-weight: 600;">연락처 <span style="color: red;">*</span></label>
+                            <input type="text" id="direct_연락처" class="form-control" placeholder="연락처를 입력하세요 (필수)" required>
+                        </div>
+                        
+                        <div class="form-group vertical">
+                            <label for="direct_주소" style="color: #d32f2f; font-weight: 600;">주소 <span style="color: red;">*</span></label>
+                            <input type="text" id="direct_주소" class="form-control" placeholder="주소를 입력하세요 (필수)" required>
+                        </div>
+                        
+                        <div class="form-group vertical">
+                            <label for="direct_수량" style="color: #1976d2; font-weight: 600;">수량</label>
+                            <input type="number" id="direct_수량" class="form-control" placeholder="수량을 입력하세요">
+                        </div>
+                        
+                        <div class="form-group vertical">
+                            <label for="direct_단가" style="color: #1976d2; font-weight: 600;">단가</label>
+                            <input type="number" id="direct_단가" class="form-control" placeholder="단가를 입력하세요">
+                        </div>
+                        
+                        <div class="form-group vertical">
+                            <label for="direct_고객명" style="color: #1976d2; font-weight: 600;">고객명</label>
+                            <input type="text" id="direct_고객명" class="form-control" placeholder="고객명을 입력하세요">
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 25px;">
+                        <button class="btn btn-success" onclick="saveDirectInputImproved()">✅ 입력 완료 및 발주서 생성</button>
+                        <button class="btn" onclick="cancelDirectInput()">취소</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 1 전용 메시지 영역 -->
+            <div id="step1Alert" style="margin: 15px 0;"></div>
+
+            <!-- 공통 알림 영역 (호환성 유지) -->
+            <div id="uploadAlert" style="margin: 15px 0;"></div> 
+
+            <!-- 2단계: 필드 매칭 -->
+            <div class="step hidden" id="step2">
+                <h3>STEP 2. 필드 매칭 설정</h3>
+
+                <!-- 기능 안내 -->
+                <!--
+                <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin: 15px 0; border-left: 3px solid #6c757d;">
+                    <div style="color: #495057; font-size: 0.85em; line-height: 1.5;">
+                        • AI 자동 매칭은 API키 설정 후 활성화됩니다<br>
+                    </div>
+                </div>
+                -->
+                <!-- 이미지 내용 (버튼 상자 위쪽에 배치) -->
+                <div style="background: linear-gradient(145deg, #e8f5e8 0%, #d4edda 100%); padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #28a745; text-align: center;">
+                    <div style="color: #155724; font-size: 0.9em; line-height: 1.5;text-align: left;">
+                        💡 <strong>매칭 과정 안내:</strong><br>
+                        • 주문서 필드의 항목을 클릭하고 발주서 필드의 항목을 클릭하면 매칭이 됩니다.<br>
+                        • 매칭 된 발주서 필드를 다시 클릭하면 매칭이 해제됩니다.<br>
+                        • AI 자동매칭 → 매칭저장(필수) → 필수필드 수동입력(생략가능) → 발주서 생성 순으로 진행하세요<br>
+                        • 필수필드 수동입력으로 누락된 데이터를 보완할 수 있습니다.<br>
+                        • 매칭 저장 후 발주서 생성 버튼이 활성화됩니다.
+                    </div>
+                </div>
+
+                <div class="mapping-container">
+                    <div class="field-list">
+                        <h5>주문서 필드</h5>
+                        <div id="sourceFields"></div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="field-list">
+                        <h5>발주서 필드</h5>
+                        <div id="targetFields">
+                            <!-- 발주서 필드들이 동적으로 추가됩니다 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 액션 버튼들 (매칭 영역 아래에 배치) -->
+                <div style="text-align: center; margin: 30px 0 20px 0; padding: 20px; background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; border: 1px solid #dee2e6; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr; width: 100%;">
+                        <button class="btn btn-purple btn-full-width" id="aiMappingBtn" onclick="toggleAIMapping()">
+                            AI 자동매칭
+                        </button>
+                        <button class="btn btn-gray btn-full-width" id="saveMappingBtn" onclick="saveMapping()" disabled>
+                            매칭저장
+                        </button>
+                        <button class="btn btn-primary btn-full-width" id="manualFieldsBtn" onclick="toggleManualFieldsInStep2()">
+                            📝 필수필드 수동입력
+                        </button>
+                        <button class="btn" onclick="restartProcess()" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); color: white; padding: 12px 24px; font-size: 0.9em; font-weight: 600; box-shadow: 0 3px 8px rgba(108, 117, 125, 0.3); width: 100%;">
+                            다시 시작
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 필수필드 수동입력 섹션 (STEP2에서도 사용 가능하도록 이동) -->
+                <div id="manualFieldsSectionStep2" class="hidden" style="margin-top: 20px; padding: 20px; background: linear-gradient(145deg, #fff3cd 0%, #ffeaa7 100%); border-radius: 8px; border: 1px solid #ffc107;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <h4 style="margin: 0; color: #856404;">📝 필수필드 수동입력</h4>
+                        <button onclick="closeManualFieldsStep2()" style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; font-size: 0.8em;">닫기</button>
+                    </div>
+                    <p style="color: #856404; margin-bottom: 15px; font-size: 0.9em;">
+                        💡 발주서 생성 전에 누락될 수 있는 필수 데이터를 미리 입력할 수 있습니다. 이 값들은 발주서 생성 시 자동으로 적용됩니다.<br>
+                        <small style="color: #9c7a00;">🔘 <strong>"➕ 필드 추가"</strong> 버튼을 클릭하여 입력할 필드를 추가해주세요.</small>
+                    </p>
+                    
+                    <div id="manualFieldInputsStep2">
+                        <!-- 동적으로 추가되는 필드 입력 영역 -->
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <button onclick="addManualFieldInputStep2()" class="btn" style="background: #28a745; color: white; padding: 8px 16px; font-size: 0.9em; margin-right: 10px;">
+                            ➕ 필드 추가
+                        </button>
+                        <button onclick="saveManualFieldsStep2()" class="btn" style="background: #007bff; color: white; padding: 8px 16px; font-size: 0.9em; margin-right: 10px;">
+                            💾 저장
+                        </button>
+                        <button onclick="clearManualFieldsStep2()" class="btn" style="background: #6c757d; color: white; padding: 8px 16px; font-size: 0.9em;">
+                            🗑️ 전체 삭제
+                        </button>
+                    </div>
+                    
+                    <div id="manualFieldResultStep2" style="margin-top: 15px;"></div>
+                </div>
+                
+                <!-- 발주서 생성 및 다시 시작 버튼 (필수필드 수동입력 아래) -->
+                <div style="text-align: center; margin: 20px 0; padding: 15px; background: linear-gradient(145deg, #f1f3f4 0%, #e8eaed 100%); border-radius: 8px; border: 1px solid #dadce0;">
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; align-items: center;">
+                        <button class="btn btn-success" onclick="generateOrder()" disabled style="width: 100%; opacity: 0.5; cursor: not-allowed; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; padding: 12px 24px; font-size: 0.9em; font-weight: 600;">
+                            발주서 생성
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 필수 필드 입력 폼 (필수 필드가 누락되었을 때만 표시) -->
+                <div id="missingFieldsForm" class="hidden" style="margin-top: 30px; padding: 20px; background: linear-gradient(145deg, #fff3cd 0%, #ffeaa7 100%); border-radius: 8px; border: 1px solid #ffeaa7;">
+                    <h4 style="color: #856404; margin-bottom: 15px;">⚠️ 필수 필드 입력</h4>
+                    <p style="color: #856404; margin-bottom: 20px;">다음 필수 정보가 매칭되지 않았습니다. 직접 입력하여 완성하세요:</p>
+                    
+                    <div id="missingFieldsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        <!-- 동적으로 생성될 입력 필드들 -->
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn btn-success" onclick="saveMissingFields()">필수 정보 저장</button>
+                        <button class="btn" onclick="hideMissingFieldsForm()">취소</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2 전용 메시지 영역 -->
+            <div id="step2Alert" style="margin: 15px 0;"></div>
+
+            <!-- 3단계: 발주서 생성 결과 -->
+            <div class="step hidden" id="step3">
+                <h3>STEP 3. 발주서 생성 완료</h3>
+                <div id="generateResult"></div>
+                
+                <!-- 필수필드 수동입력 섹션 -->
+                <div id="manualFieldsSection" class="hidden" style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                        <h4 style="margin: 0; color: #495057;">📝 필수필드 수동입력</h4>
+                        <button onclick="closeManualFields()" style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; font-size: 0.8em;">닫기</button>
+                    </div>
+                    <p style="color: #6c757d; margin-bottom: 15px; font-size: 0.9em;">
+                        💡 발주서에서 누락된 필수 데이터를 수동으로 입력하여 보완할 수 있습니다.<br>
+                        <small style="color: #495057;">🔘 <strong>"➕ 필드 추가"</strong> 버튼을 클릭하여 입력할 필드를 추가해주세요.</small>
+                    </p>
+                    
+                    <div id="manualFieldInputs">
+                        <!-- 동적으로 추가되는 필드 입력 영역 -->
+                    </div>
+                    
+                    <div style="margin-top: 15px;">
+                        <button onclick="addManualFieldInput()" class="btn" style="background: #28a745; color: white; padding: 8px 16px; font-size: 0.9em; margin-right: 10px;">
+                            ➕ 필드 추가
+                        </button>
+                        <button onclick="saveManualFields()" class="btn" style="background: #007bff; color: white; padding: 8px 16px; font-size: 0.9em; margin-right: 10px;">
+                            💾 저장
+                        </button>
+                        <button onclick="clearManualFields()" class="btn" style="background: #6c757d; color: white; padding: 8px 16px; font-size: 0.9em;">
+                            🗑️ 전체 삭제
+                        </button>
+                    </div>
+                    
+                    <div id="manualFieldResult" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- STEP 3 전용 메시지 영역 -->
+            <div id="step3Alert" style="margin: 15px 0;"></div>
+
+            <!-- 4단계: 이메일 전송 -->
+            <div class="step hidden" id="step4">
+                <h3>STEP 4. 이메일 전송</h3>
+
+                <!-- 이메일 개인 정보 보호 안내내 -->
+                <div style="background: linear-gradient(145deg, #e8f5e8 0%, #d4edda 100%); padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #28a745; text-align: center;">
+                    <div style="color: #155724; font-size: 0.9em; line-height: 1.5;text-align: left;">
+                        🔒 <strong>이메일 발송 전 확인사항</strong><br>
+                        • 개인정보 보호를 위해 이메일 전송 완료 후 서버의 전송 이력과 업로드된 파일은 자동으로 삭제됩니다.<br>
+                        • 전송 이력은 브라우저에 안전하게 저장되어 "전송 이력" 버튼으로 확인하실 수 있습니다.<br>
+                        • 발주서를 다운로드하지 않으신 경우, 이메일 전송 후 파일에 접근할 수 없습니다. 필요시 지금 다운로드해주세요.
+                    </div>
+                </div>
+                
+                <div class="email-form">
+                    <div class="form-group">
+                        <label for="emailTo" style="color: #d32f2f; font-weight: 600;">받는 사람 이메일 <span style="color: red;">*</span></label>
+                        <input type="email" id="emailTo" class="form-control" placeholder="이메일 주소를 입력하세요 (필수)" required 
+                               style="border: 2px solid #d32f2f;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="emailSubject">제목</label>
+                        <input type="text" id="emailSubject" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="emailBody">내용</label>
+                        <textarea id="emailBody" class="form-control">안녕하세요.
+
+첨부파일로 발주서를 보내드립니다.
+확인 후 회신 부탁드립니다.
+
+감사합니다.</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>전송 옵션</label>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="sendNow" name="sendOption" value="now" checked>
+                                <label for="sendNow">즉시 전송</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="sendScheduled" name="sendOption" value="scheduled">
+                                <label for="sendScheduled">예약 전송</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="scheduleTimeGroup" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                        <label style="font-weight: 600; margin-bottom: 12px; display: block; color: #495057; font-size: 0.95em;">📅 예약 시간 선택</label>
+                        
+                        
+                        
+                        <!-- 빠른 선택 버튼들 -->
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 0.85em; color: #6c757d; margin-bottom: 6px; display: block;">⚡ 빠른 선택</label>
+                            <div class="quick-time-buttons" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <button type="button" class="btn quick-time-btn" onclick="setQuickTime(15)" style="background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; padding: 6px 10px; font-size: 0.8em;">
+                                    15분 후
+                                </button>
+                                <button type="button" class="btn quick-time-btn" onclick="setQuickTime(30)" style="background: #e8f5e8; color: #2e7d32; border: 1px solid #c8e6c9; padding: 6px 10px; font-size: 0.8em;">
+                                    30분 후
+                                </button>
+                                <button type="button" class="btn quick-time-btn" onclick="setQuickTime(60)" style="background: #fff3e0; color: #f57c00; border: 1px solid #ffcc02; padding: 6px 10px; font-size: 0.8em;">
+                                    1시간 후
+                                </button>
+                                <button type="button" class="btn quick-time-btn" onclick="setQuickTime(120)" style="background: #fce4ec; color: #c2185b; border: 1px solid #f8bbd9; padding: 6px 10px; font-size: 0.8em;">
+                                    2시간 후
+                                </button>
+                                <button type="button" class="btn quick-time-btn" onclick="setQuickTime(240)" style="background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; padding: 6px 10px; font-size: 0.8em;">
+                                    4시간 후
+                                </button>
+                                <button type="button" class="btn quick-time-btn" onclick="setQuickTime(1440)" style="background: #e0f2f1; color: #00695c; border: 1px solid #b2dfdb; padding: 6px 10px; font-size: 0.8em;">
+                                    내일 동시간
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 정확한 시간 입력 -->
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 0.85em; color: #6c757d; margin-bottom: 6px; display: block;">🎯 정확한 시간 설정</label>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="datetime-local" id="scheduleTime" class="form-control" style="flex: 1; font-size: 0.9em; padding: 6px 8px;">
+                                <button type="button" class="btn" onclick="setCurrentTimePlus1Hour()" style="background: #f8f9fa; border: 1px solid #dee2e6; color: #495057; padding: 6px 10px; font-size: 0.8em; white-space: nowrap;">
+                                    현재+1시간
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 선택된 시간 표시 -->
+                        <div id="selectedTimeDisplay" style="background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 8px; font-size: 0.85em; color: #0066cc;">
+                            📅 선택된 시간: <span id="selectedTimeText">미선택</span>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="sendEmail()">이메일 전송</button>
+                </div>
+                
+                <div id="emailResult"></div>
+            </div>
+
+            <!-- 예약된 이메일 목록 -->
+            <div class="step scheduled-emails">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">📅 예약된 이메일</h3>
+                    <button onclick="refreshScheduledEmails()" class="btn" style="background: #6c757d; color: white; padding: 8px 16px; font-size: 0.85em; margin: 0;">🔄 새로고침</button>
+                </div>
+                <div class="history-controls" id="scheduledEmailsControls" style="display: none;">
+                    <div class="control-group">
+
+                        <label style="cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" id="selectAllScheduled" class="history-checkbox" onchange="toggleAllScheduled()"> 
+                            <span> 전체 선택 </span>
+                        </label>
+
+                    </div>
+                    <div class="control-group">
+                        <button class="btn btn-warning" onclick="deleteSelectedScheduled()" id="deleteSelectedScheduled" style="display: none; padding: 5px 10px; font-size: 0.8em; margin-right: 10px;">선택 삭제</button>
+                        <button class="btn" onclick="deleteAllScheduled()" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 5px 10px; font-size: 0.8em;">
+                            전체 삭제
+                        </button>
+                    </div>
+                </div>
+                <div id="scheduledEmailsList">
+                    <p style="text-align: center; color: #6c757d;">예약된 이메일이 없습니다.</p>
+                </div>
+            </div>
+
+            <!-- 전송 이력 -->
+            <div class="step email-history">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">📧 전송 이력</h3>
+                    <p> 이메일 전송 성공 후에는 로컬에만 이력이 남고 서버에서는 삭제됩니다.</p>
+                    <button onclick="refreshCombinedEmailHistory()" class="btn" style="background: #6c757d; color: white; padding: 8px 16px; font-size: 0.85em; margin: 0;">🔄 새로고침</button>
+                </div>
+                
+                <!-- 탭 메뉴 -->
+                <div class="email-history-tabs" style="display: flex; margin-bottom: 15px; border-bottom: 2px solid #dee2e6;">
+                    <button id="serverHistoryTab" onclick="switchEmailHistoryTab('server')" class="email-history-tab active" style="flex: 1; padding: 12px; border: none; background: #007bff; color: white; cursor: pointer; border-radius: 8px 8px 0 0; font-weight: 600; transition: all 0.3s;">
+                        🌐 서버 이력
+                    </button>
+                    <button id="localHistoryTab" onclick="switchEmailHistoryTab('local')" class="email-history-tab" style="flex: 1; padding: 12px; border: none; background: #f8f9fa; color: #495057; cursor: pointer; border-radius: 8px 8px 0 0; font-weight: 600; transition: all 0.3s; margin-left: 2px;">
+                        📱 로컬 이력 <span id="localHistoryCount" style="background: #28a745; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.8em; margin-left: 5px;">0</span>
+                    </button>
+                </div>
+                <div class="history-controls" id="emailHistoryControls" style="display: none;">
+                    <div class="control-group">
+                        <label style="cursor: pointer; display: flex; align-items: center;">
+                            <input type="checkbox" id="selectAllHistory" class="history-checkbox" onchange="toggleSelectAll()"> 
+                            <span> 전체 선택 </span>
+                        </label>
+                    </div>
+                    <div class="control-group">
+                        <button class="btn btn-warning" onclick="deleteSelectedHistory()" id="deleteSelectedBtn" style="display: none; padding: 5px 10px; font-size: 0.8em; margin-right: 10px;">선택 삭제</button>
+                        <button class="btn" onclick="clearAllHistory()" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; padding: 5px 10px; font-size: 0.8em;">전체 삭제</button>
+                    </div>
+                </div>
+                <!-- 서버 이력 (기존) -->
+                <div id="emailHistoryList" class="history-content server-history">
+                    <p style="text-align: center; color: #6c757d;">전송 이력이 없습니다.</p>
+                </div>
+                
+                <!-- 로컬 이력 (새로운) -->
+                <div id="localEmailHistoryList" class="history-content local-history" style="display: none;">
+                    <div style="text-align: center; padding: 40px; color: #6c757d;">
+                        <div style="font-size: 2em; margin-bottom: 10px;">📱</div>
+                        <div style="margin-bottom: 8px; font-weight: 500;">로컬 전송 이력이 없습니다</div>
+                        <div style="font-size: 0.9em; color: #6c757d;">이메일을 전송하면 이곳에 기록됩니다</div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+        </div>
+
+
+        <!-- 진행률 표시 (하단 고정) -->
+        <div id="progressContainer" class="progress-container hidden">
+            <div class="progress-wrapper">
+                <div class="progress-text">
+                    <span id="progressMessage">발주서를 생성하고 있습니다...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 사용 가이드 버튼 -->
+    <button class="user-guide-btn" onclick="openUserGuide()" title="사용법이 궁금하신가요? 자세한 가이드를 확인하세요">
+        📖 사용 가이드
+    </button>
+
+    <!-- 오류 보고 버튼 -->
+    <button class="error-report-btn" onclick="openErrorReport()" title="문제가 발생했나요? 오류를 신고해주세요">
+        🐛 오류 신고
+    </button>
+
+    <!-- XLSX 라이브러리 추가 (XLS 파일 변환용) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html> 

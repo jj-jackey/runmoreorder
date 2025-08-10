@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📖 사용자 가이드 - 런모아 자동 발주서 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #007bff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .toc {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .toc h3 {
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc li {
+            margin: 5px 0;
+        }
+
+        .toc a {
+            color: #007bff;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .toc a:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+
+        .section {
+            margin: 40px 0;
+            padding: 20px 0;
+        }
+
+        .section h2 {
+            color: #007bff;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .section h3 {
+            color: #495057;
+            margin: 25px 0 15px 0;
+            font-size: 1.4em;
+        }
+
+        .section h4 {
+            color: #6c757d;
+            margin: 20px 0 10px 0;
+            font-size: 1.2em;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .feature-card h4 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .workflow-steps {
+            counter-reset: step-counter;
+        }
+
+        .workflow-step {
+            counter-increment: step-counter;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            position: relative;
+            padding-left: 60px;
+        }
+
+        .workflow-step::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            background: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .workflow-step h4 {
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        .close-btn:hover {
+            background: #c82333;
+        }
+
+        .emoji {
+            font-size: 1.2em;
+            margin-right: 5px;
+        }
+
+        ul, ol {
+            margin: 10px 0 10px 20px;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        p {
+            margin: 10px 0;
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <button class="close-btn" onclick="window.close()">✕ 닫기</button>
+    
+    <div class="container">
+        <div class="header">
+            <h1>📖 사용자 가이드</h1>
+            <p>런모아 자동 발주서 시스템 완벽 가이드</p>
+        </div>
+
+        <div class="toc">
+            <h3>📑 목차</h3>
+            <ul>
+                <li><a href="#overview">🎯 시스템 개요</a></li>
+                <li><a href="#features">⚡ 주요 기능</a></li>
+                <li><a href="#workflow">🔄 기본 사용법</a></li>
+                <li><a href="#mapping">🔗 필드 매칭</a></li>
+                <li><a href="#ai">🤖 AI 자동 매칭</a></li>
+                <li><a href="#templates">📋 템플릿 시스템</a></li>
+                <li><a href="#email">📧 이메일 시스템</a></li>
+                <li><a href="#tips">💡 활용 팁</a></li>
+                <li><a href="#troubleshooting">🛠 문제해결</a></li>
+            </ul>
+        </div>
+
+        <div class="section" id="overview">
+            <h2>🎯 시스템 개요</h2>
+            <p>이 시스템은 <span class="highlight">주문서 Excel 파일을 발주서 형태로 자동 변환</span>하여 업무 효율성을 극대화하는 도구입니다.</p>
+            
+            <div class="alert alert-info">
+                <strong><span class="emoji">💡</span> 핵심 가치</strong><br>
+                • 수작업 발주서 작성 시간을 90% 단축<br>
+                • 사람의 실수로 인한 오류 최소화<br>
+                • 일관된 형태의 발주서 생성<br>
+                • 이메일 자동 발송으로 즉시 전달
+            </div>
+        </div>
+
+        <div class="section" id="features">
+            <h2>⚡ 주요 기능</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4><span class="emoji">📁</span> 다양한 파일 지원</h4>
+                    <p>Excel (.xlsx, .xls), CSV 파일 모두 지원하며, 대용량 파일도 안정적으로 처리합니다.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">🤖</span> AI 자동 매칭</h4>
+                    <p>OpenAI를 활용하여 필드명을 분석해 자동으로 최적의 매칭을 제공합니다.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">📋</span> 템플릿 시스템</h4>
+                    <p>자주 사용하는 매칭 규칙을 템플릿으로 저장하여 재사용할 수 있습니다.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">📧</span> 자동 이메일 발송</h4>
+                    <p>발주서 생성 후 즉시 이메일로 전송하거나 예약 발송도 가능합니다.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">🔍</span> 실시간 미리보기</h4>
+                    <p>매칭 결과를 실시간으로 확인하고 수정할 수 있습니다.</p>
+                </div>
+                <div class="feature-card">
+                    <h4><span class="emoji">📊</span> 데이터 검증</h4>
+                    <p>이메일, 전화번호, 날짜 형식을 자동으로 검증해 오류를 사전에 방지합니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="workflow">
+            <h2>🔄 기본 사용법</h2>
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <h4>작업 모드 선택</h4>
+                    <p>• <strong>파일 업로드</strong>: 주문서와 발주서 템플릿 모두 업로드</p>
+                    <p>• <strong>직접 입력</strong>: 주문서만 업로드하고 기본 템플릿 사용</p>
+                    <p>• <strong>기본 템플릿</strong>: 시스템 제공 템플릿 사용</p>
+                    <p>• <strong>저장된 템플릿</strong>: 이전에 저장한 템플릿 재사용</p>
+                </div>
+
+                <div class="workflow-step">
+                    <h4>파일 업로드 및 분석</h4>
+                    <p>• 드래그 앤 드롭 또는 파일 선택으로 업로드</p>
+                    <p>• 시스템이 자동으로 파일 구조 분석</p>
+                    <p>• 헤더와 데이터 행을 자동 감지</p>
+                </div>
+
+                <div class="workflow-step">
+                    <h4>필드 매칭 설정</h4>
+                    <p>• AI 자동 매칭 또는 수동 드래그 앤 드롭</p>
+                    <p>• 실시간 미리보기로 결과 확인</p>
+                    <p>• 필요시 수동으로 세부 조정</p>
+                </div>
+
+                <div class="workflow-step">
+                    <h4>발주서 생성 및 확인</h4>
+                    <p>• 매칭 규칙 적용하여 자동 변환</p>
+                    <p>• 생성된 발주서 다운로드</p>
+                    <p>• 필요시 이메일로 즉시 전송</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="mapping">
+            <h2>🔗 필드 매칭</h2>
+            <h3>매칭 유형</h3>
+            <div class="alert alert-success">
+                <strong>1. 자동 매칭</strong>: AI가 컬럼명과 데이터 분석하여 추천<br>
+                <strong>2. 수동 매칭</strong>: 사용자가 직접 드롭다운에서 선택<br>
+                <strong>3. 직접 입력</strong>: 고정값 또는 수식 입력
+            </div>
+
+            <h3>매칭 우선순위</h3>
+            <div class="code-block">
+1. 직접 입력값 (최고 우선순위)
+2. 매핑된 주문서 컬럼 데이터
+3. 빈 값 (기본값)
+            </div>
+        </div>
+
+        <div class="section" id="ai">
+            <h2>🤖 AI 자동 매칭 설정</h2>
+            <div class="workflow-steps">
+                <div class="workflow-step">
+                    <h4>API 키 발급</h4>
+                    <p>1. <a href="https://platform.openai.com" target="_blank">OpenAI Platform</a> 접속</p>
+                    <p>2. 계정 로그인 또는 회원가입</p>
+                    <p>3. "Create new secret key" 클릭</p>
+                    <p>4. API 키 복사 (sk-로 시작하는 긴 문자열)</p>
+                </div>
+
+                <div class="workflow-step">
+                    <h4>시스템에 API 키 등록</h4>
+                    <p>1. 우상단 <span class="highlight">🔧 API 키 설정</span> 버튼 클릭</p>
+                    <p>2. API 키 입력란에 복사한 키 붙여넣기</p>
+                    <p>3. <span class="highlight">🚀 시작하기</span> 버튼 클릭</p>
+                    <p>4. 검증 완료 후 메인 페이지로 자동 이동</p>
+                </div>
+
+                <div class="workflow-step">
+                    <h4>AI 기능 사용</h4>
+                    <p>• 우상단이 <span class="highlight">🤖 AI 기능 사용 가능</span>으로 변경됨</p>
+                    <p>• <span class="highlight">🤖 AI 자동 매핑</span> 버튼 활성화</p>
+                    <p>• 더 정확하고 빠른 매핑 가능</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="templates">
+            <h2>📋 템플릿 시스템</h2>
+            <h3>템플릿 저장</h3>
+            <p>자주 사용하는 매칭 규칙을 템플릿으로 저장하여 다음에 재사용할 수 있습니다.</p>
+
+            <h3>빠른 템플릿 검색</h3>
+            <div class="alert alert-info">
+                <strong><span class="emoji">🔍</span> 새로운 기능!</strong><br>
+                저장된 템플릿 사용 모드에서 템플릿 이름을 입력하여 빠르게 검색하고 선택할 수 있습니다.
+            </div>
+        </div>
+
+        <div class="section" id="email">
+            <h2>📧 이메일 시스템</h2>
+            <h3>즉시 발송</h3>
+            <p>발주서 생성 후 바로 이메일로 전송할 수 있습니다.</p>
+
+            <h3>예약 발송</h3>
+            <p>원하는 날짜와 시간을 설정하여 예약 발송이 가능합니다.</p>
+
+            <h3>발송 이력 관리</h3>
+            <p>모든 이메일 발송 이력을 확인하고 관리할 수 있습니다.</p>
+        </div>
+
+        <div class="section" id="tips">
+            <h2>💡 활용 팁</h2>
+            <div class="alert alert-warning">
+                <strong><span class="emoji">💡</span> 성능 최적화</strong><br>
+                • 1000행 이하: 최적 성능<br>
+                • 5000행 이하: 양호한 성능<br>
+                • 10000행 이상: 파일 분할 권장
+            </div>
+
+            <h3>자주 사용하는 기능</h3>
+            <ul>
+                <li><strong>템플릿 활용</strong>: 반복 작업 시 시간 절약</li>
+                <li><strong>미리보기 확인</strong>: 변환 전 결과 검토</li>
+                <li><strong>데이터 검증</strong>: 이메일, 전화번호 형식 확인</li>
+                <li><strong>일괄 처리</strong>: 대량 데이터 효율적 처리</li>
+            </ul>
+        </div>
+
+        <div class="section" id="troubleshooting">
+            <h2>🛠 문제해결</h2>
+            <h3>일반적인 문제</h3>
+            
+            <h4><span class="emoji">❌</span> 파일 업로드 실패</h4>
+            <ul>
+                <li>파일 형식 확인 (.xlsx, .xls, .csv만 지원)</li>
+                <li>파일 크기 확인 (10MB 이하 권장)</li>
+                <li>네트워크 연결 상태 확인</li>
+            </ul>
+
+            <h4><span class="emoji">🔍</span> 매칭 결과가 이상한 경우</h4>
+            <ul>
+                <li>컬럼명과 데이터 형식 확인</li>
+                <li>수동으로 매칭 조정</li>
+                <li>미리보기로 결과 검토</li>
+            </ul>
+
+            <h4><span class="emoji">📧</span> 이메일 발송 실패</h4>
+            <ul>
+                <li>수신자 이메일 주소 확인</li>
+                <li>네트워크 연결 상태 확인</li>
+                <li>첨부파일 크기 확인</li>
+            </ul>
+
+            <div class="alert alert-info">
+                <strong><span class="emoji">🆘</span> 추가 도움이 필요하시나요?</strong><br>
+                문제가 해결되지 않으면 하단의 <span class="highlight">🐛 오류 신고</span> 버튼을 클릭하여 문의해주세요.
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="alert alert-success">
+                <strong><span class="emoji">🎉</span> 축하합니다!</strong><br>
+                이제 런모아 자동 발주서 시스템을 완벽하게 활용할 수 있습니다. 
+                더 자세한 내용이나 최신 업데이트는 시스템 내 공지사항을 확인해주세요.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 부드러운 스크롤 효과
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 키보드 단축키 (ESC로 창 닫기)
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.close();
+            }
+        });
+    </script>
+</body>
+</html> 
